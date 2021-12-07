@@ -141,11 +141,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\bitmap.cpp" />
+    <ClCompile Include="src\camera.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\raycast.cpp" />
+    <ClCompile Include="src\vec3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\bitmap.hpp" />
     <ClInclude Include="include\camera.hpp" />
+    <ClInclude Include="include\object.hpp" />
+    <ClInclude Include="include\raycast.hpp" />
+    <ClInclude Include="include\vec3.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

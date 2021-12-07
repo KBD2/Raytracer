@@ -29,7 +29,7 @@ bool Bitmap::save(std::string filename)
 	const int colourPlanes = 1;
 	const int bpp = 24;
 
-	int rowSize = (int)(std::ceil(24.0 * width / 32.0) * 4.0);
+	unsigned int rowSize = (int)(std::ceil(24.0 * width / 32.0) * 4.0);
 	int pixelArraySize = rowSize * height;
 	int offset = headerSize + dibSize;
 	int fileSize = pixelArraySize + headerSize + dibSize;
@@ -60,7 +60,7 @@ bool Bitmap::save(std::string filename)
 
 	file.write(fileHeaderData, sizeof(fileHeaderData));
 
-	assert(rowSize >= 4); // Avoid the compiler complaining cause it thinks rowSize could be 2 or less
+	assert(rowSize >= width); // Avoid the compiler complaining cause it thinks rowSize could be 2 or less
 
 	char* rowData = new char[rowSize];
 
@@ -68,15 +68,13 @@ bool Bitmap::save(std::string filename)
 
 	for (int y = height - 1; y >= 0; y--)
 	{
-		for (int x = width - 1; x >= 0; x--)
+		for (int x = 0; (unsigned int)x < width; x++)
 		{
-			// Epic gamer memcpy is very inadvisable cause it relies on rgb being at the start of the Colour class
-			//std::memcpy(rowData + (uint64_t)x * 3, &data[(uint64_t)y * width + x], 3);
-
 			uint64_t colourIndex = (uint64_t)y * width + x;
-			rowData[x * 3] = data[colourIndex].r;
+			// Little-endian means we flip the normal order
+			rowData[x * 3] = data[colourIndex].b;
 			rowData[x * 3 + 1] = data[colourIndex].g;
-			rowData[x * 3 + 2] = data[colourIndex].b;
+			rowData[x * 3 + 2] = data[colourIndex].r;
 		}
 		file.write(rowData, rowSize);
 	}
