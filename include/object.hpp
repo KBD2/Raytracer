@@ -5,18 +5,20 @@
 class Object
 {
 public:
-	Coords position;
-	int radius;
+	Coords pos;
+	int rad;
+	Colour col;
 
 	Object()
 	{
-		position = Coords(0, 0, 0);
-		radius = 0;
+		pos = Coords(0, 0, 0);
+		rad = 0;
 	}
 
-	Object(Coords pos, int rad)
+	Object(Coords _pos, int _rad, Colour _colour)
 	{
-		position = pos;
-		radius = rad;
+		pos = _pos;
+		rad = _rad;
+		col = _colour;
 	}
 };

@@ -40,3 +40,23 @@ Vec3 Vec3::operator*(double n)
 {
 	return Vec3(x * n, y * n, z * n);
 }
+
+double Vec3::dot(Vec3 b)
+{
+	return x * b.x + y * b.y + z * b.z;
+}
+
+bool Vec3::operator==(Vec3 b)
+{
+	return x == b.x && y == b.y && z == b.z;
+}
+
+bool Vec3::operator!=(Vec3 b)
+{
+	return x != b.x || y != b.y || z != b.z;
+}
+
+Vec3 Vec3::operator-()
+{
+	return Vec3(-x, -y, -z);
+}

@@ -6,21 +6,26 @@
 class Colour
 {
 public:
-	unsigned char r, g, b;
+	double r, g, b;
 
 	Colour()
 	{
-		r = 0;
-		g = 0;
-		b = 0;
+		r = 0.0;
+		g = 0.0;
+		b = 0.0;
 	}
 
-	Colour(unsigned char _r, unsigned char _g, unsigned char _b)
+	Colour(double _r, double _g, double _b)
 	{
 		r = _r;
 		g = _g;
 		b = _b;
 	}
+
+	Colour operator*(double n);
+	void operator*=(double n);
+	Colour operator/(double n);
+	void operator+=(Colour n);
 };
 
 class Bitmap

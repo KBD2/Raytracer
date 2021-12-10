@@ -60,9 +60,8 @@ bool Bitmap::save(std::string filename)
 
 	file.write(fileHeaderData, sizeof(fileHeaderData));
 
-	assert(rowSize >= width); // Avoid the compiler complaining cause it thinks rowSize could be 2 or less
 
-	char* rowData = new char[rowSize];
+	char* rowData = new char[rowSize + (uint64_t)10];
 
 	std::memset(rowData, 0, rowSize);
 
@@ -72,9 +71,9 @@ bool Bitmap::save(std::string filename)
 		{
 			uint64_t colourIndex = (uint64_t)y * width + x;
 			// Little-endian means we flip the normal order
-			rowData[x * 3] = data[colourIndex].b;
-			rowData[x * 3 + 1] = data[colourIndex].g;
-			rowData[x * 3 + 2] = data[colourIndex].r;
+			rowData[x * 3] = 256 * std::max(std::min((double)data[colourIndex].b, 0.999), 0.0);
+			rowData[x * 3 + 1] = 256 * std::max(std::min((double)data[colourIndex].g, 0.999), 0.0);
+			rowData[x * 3 + 2] = 256 * std::max(std::min((double)data[colourIndex].r, 0.999), 0.0);
 		}
 		file.write(rowData, rowSize);
 	}
@@ -84,4 +83,26 @@ bool Bitmap::save(std::string filename)
 	delete[] rowData;
 
 	return true;
+}
+
+Colour Colour::operator*(double n)
+{
+	return Colour((double)r * n, (double)g * n, (double)b * n);
+}
+
+void Colour::operator*=(double n)
+{
+	*this = *this * n;
+}
+
+Colour Colour::operator/(double n)
+{
+	return Colour((double)r / n, (double)g / n, (double)b / n);
+}
+
+void Colour::operator+=(Colour n)
+{
+	r += n.r;
+	g += n.g;
+	b += n.b;
 }

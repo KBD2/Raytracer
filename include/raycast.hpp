@@ -6,6 +6,20 @@
 #include "bitmap.hpp"
 #include "object.hpp"
 
-const int steps = 1000;
+const int MAX_BOUNCES = 50;
+const double IMPRECISION_DELTA = 0.001;
 
-Colour raycast(Camera* camera, unsigned int row, unsigned int col, std::vector<Object>* objects, unsigned int width, unsigned int height);
+class Ray
+{
+public:
+	Coords orig;
+	Vec3 dir;
+
+	Ray(Coords _orig, Vec3 _dir)
+	{
+		orig = _orig;
+		dir = _dir;
+	}
+};
+
+Colour raycast(Ray ray, std::vector<Object>& objects);
