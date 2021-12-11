@@ -47,5 +47,11 @@
     <ClInclude Include="include\vec3.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\conmanip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\materials.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

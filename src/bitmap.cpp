@@ -100,9 +100,44 @@ Colour Colour::operator/(double n)
 	return Colour((double)r / n, (double)g / n, (double)b / n);
 }
 
+Colour Colour::operator+(Colour n)
+{
+	return Colour(r + n.r, g + n.g, b + n.b);
+}
+
 void Colour::operator+=(Colour n)
 {
 	r += n.r;
 	g += n.g;
 	b += n.b;
+}
+
+void Colour::operator/=(double n)
+{
+	*this = *this / n;
+}
+
+Colour Colour::map(double (*fun)(double))
+{
+	return Colour(fun(r), fun(g), fun(b));
+}
+
+Colour Colour::operator-(Colour n)
+{
+	return Colour(std::max(0.0, r - n.r), std::max(0.0, g - n.g), std::max(0.0, b - n.b));
+}
+
+void Colour::operator-=(Colour n)
+{
+	r -= n.r;
+	g -= n.g;
+	b -= n.b;
+	r = std::max(0.0, r);
+	g = std::max(0.0, g);
+	b = std::max(0.0, b);
+}
+
+Colour Colour::inverse()
+{
+	return Colour(1 - r, 1 - g, 1 - b);
 }

@@ -31,9 +31,9 @@ Vec3 Vec3::unit()
 	return *this / length();
 }
 
-double Vec3::distance(Vec3 b)
+double Vec3::dist(Vec3 b)
 {
-	return std::sqrt(std::pow(x - b.x, 2) + std::pow(y - b.y, 2) + std::pow(z - b.z, 2));
+	return std::sqrt(std::pow(b.x - x, 2) + std::pow(b.y - y, 2) + std::pow(b.z - z, 2));
 }
 
 Vec3 Vec3::operator*(double n)

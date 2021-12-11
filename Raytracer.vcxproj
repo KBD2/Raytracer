@@ -152,6 +152,8 @@
   <ItemGroup>
     <ClInclude Include="include\bitmap.hpp" />
     <ClInclude Include="include\camera.hpp" />
+    <ClInclude Include="include\conmanip.h" />
+    <ClInclude Include="include\materials.hpp" />
     <ClInclude Include="include\object.hpp" />
     <ClInclude Include="include\raycast.hpp" />
     <ClInclude Include="include\vec3.hpp" />

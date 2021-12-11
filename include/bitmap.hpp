@@ -26,6 +26,12 @@ public:
 	void operator*=(double n);
 	Colour operator/(double n);
 	void operator+=(Colour n);
+	Colour operator+(Colour b);
+	void operator/=(double n);
+	Colour operator-(Colour n);
+	void operator-=(Colour n);
+	Colour inverse();
+	Colour map(double(*fun)(double));
 };
 
 class Bitmap

@@ -6,8 +6,9 @@
 #include "bitmap.hpp"
 #include "object.hpp"
 
-const int MAX_BOUNCES = 50;
+const int MAX_BOUNCES = 5;
 const double IMPRECISION_DELTA = 0.001;
+const int RANDOM_BOUNCES = 1;
 
 class Ray
 {
@@ -22,4 +23,4 @@ public:
 	}
 };
 
-Colour raycast(Ray ray, std::vector<Object>& objects);
+Colour raycast(Ray ray, std::vector<Object>& objects, std::vector<Light>& lights, int depth);

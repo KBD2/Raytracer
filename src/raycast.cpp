@@ -4,6 +4,7 @@
 #include <random>
 
 #include "raycast.hpp"
+#include "materials.hpp"
 
 Colour mixColour(Colour a, Colour b, double weight)
 {
@@ -14,98 +15,14 @@ Colour mixColour(Colour a, Colour b, double weight)
 	return result;
 }
 
-class HitData {
+class IntersectData
+{
 public:
 	bool hit;
 	Coords pos;
-	Vec3 normal;
-	Colour surfaceCol;
 
-	HitData()
-	{
-		hit = false;
-		pos = Coords();
-		normal = Vec3();
-		surfaceCol = Colour();
-	}
-
-	HitData(bool _hit, Coords _pos, Vec3 _normal, Colour _surfaceCol)
-	{
-		hit = _hit;
-		pos = _pos;
-		normal = _normal;
-		surfaceCol = _surfaceCol;
-	}
-
-	HitData(bool failed) // Just to make it clear when a hit didn't occur
-	{
-		hit = false;
-		pos = Coords();
-		normal = Vec3();
-		surfaceCol = Colour();
-	}
+	IntersectData(bool _hit, Coords _pos) : hit(_hit), pos(_pos) {}
 };
-
-HitData calculateHitSphere(Ray ray, Object& obj)
-{
-	// Set up a quadratic equation using parametric formulae for the ray and sphere
-	double a = std::pow(ray.dir.x, 2)
-		+ std::pow(ray.dir.y, 2)
-		+ std::pow(ray.dir.z, 2);
-	double b = -2.0 * (ray.dir.x * (obj.pos.x - ray.orig.x)
-					+ ray.dir.y * (obj.pos.y - ray.orig.y)
-					+ ray.dir.z * (obj.pos.z - ray.orig.z));
-	double c = std::pow(obj.pos.x - ray.orig.x, 2)
-		+ std::pow(obj.pos.y - ray.orig.y, 2)
-		+ std::pow(obj.pos.z - ray.orig.z, 2)
-		- std::pow(obj.rad, 2);
-
-	// If the discriminant isn't above 0, it doesn't intercept
-	double discriminant = std::pow(b, 2) - 4.0 * a * c;
-	if (discriminant <= 0) return HitData();
-
-	// Find the roots with the quadratic formula
-	double rootFirst = (-b + std::sqrt(discriminant)) / (2.0 * a);
-	double rootSecond = (-b - std::sqrt(discriminant)) / (2.0 * a);
-
-	// If both are below zero the object is behind the ray origin
-	if (rootFirst < 0 && rootSecond < 0) return HitData();
-
-	double nearest;
-
-	// Find the closest intercept to the origin in front of the camera
-	if (rootFirst > 0 && rootSecond > 0) nearest = std::min(rootFirst, rootSecond);
-	else nearest = std::max(rootFirst, rootSecond);
-
-	Coords hit = ray.orig + (ray.dir * (nearest - IMPRECISION_DELTA));
-	
-	return HitData(true, hit, (hit - obj.pos).unit(), obj.col);
-}
-
-HitData fireRay(Ray ray, std::vector<Object>& objects)
-{
-	for (auto& obj : objects)
-	{
-		HitData hit = calculateHitSphere(ray, obj);
-		if (hit.hit) return hit;
-	}
-	if (ray.dir.y < 0)
-	{
-		double delta = -ray.orig.y / ray.dir.y;
-		Coords ground = ray.dir * delta;
-		return HitData(true, ground, Vec3(0, 1, 0), Colour(0.6, 0.6, 0.6));
-	}
-	return HitData(false);
-}
-
-bool clearPath(Ray ray, std::vector<Object>& objects)
-{
-	for (auto& obj : objects)
-	{
-		if (calculateHitSphere(ray, obj).hit) return false;
-	}
-	return true;
-}
 
 Vec3 randInUnitSphere()
 {
@@ -124,33 +41,148 @@ Vec3 randInUnitSphere()
 	return Vec3(x, y, z);
 }
 
-Colour raycast(Ray ray, std::vector<Object>& objects)
+IntersectData calculateHitSphere(Ray ray, Object& obj)
 {
-	double multiplier = 1.0;
+	// Set up a quadratic equation using parametric formulae for the ray and sphere
+	double a = std::pow(ray.dir.x, 2)
+		+ std::pow(ray.dir.y, 2)
+		+ std::pow(ray.dir.z, 2);
+	double b = -2.0 * (ray.dir.x * (obj.pos.x - ray.orig.x)
+					+ ray.dir.y * (obj.pos.y - ray.orig.y)
+					+ ray.dir.z * (obj.pos.z - ray.orig.z));
+	double c = std::pow(obj.pos.x - ray.orig.x, 2)
+		+ std::pow(obj.pos.y - ray.orig.y, 2)
+		+ std::pow(obj.pos.z - ray.orig.z, 2)
+		- std::pow(obj.rad, 2);
 
-	// Convert spherical coordinates to unit vector
-	int bounces;
+	// If the discriminant isn't above 0, it doesn't intercept
+	double discriminant = std::pow(b, 2) - 4.0 * a * c;
+	if (discriminant <= 0) return IntersectData(false, Coords());
+
+	// Find the roots with the quadratic formula
+	double rootFirst = (-b + std::sqrt(discriminant)) / (2.0 * a);
+	double rootSecond = (-b - std::sqrt(discriminant)) / (2.0 * a);
+
+	// If both are below zero the object is behind the ray origin
+	if (rootFirst < 0 && rootSecond < 0) return IntersectData(false, Coords());
+
+	double nearest;
+
+	// Find the closest intercept to the origin in front of the camera
+	if (rootFirst > 0 && rootSecond > 0) nearest = std::min(rootFirst, rootSecond);
+	else nearest = std::max(rootFirst, rootSecond);
+
+	Coords hit = ray.orig + (ray.dir * (nearest - IMPRECISION_DELTA));
+	
+	return IntersectData(true, hit);
+}
+
+bool clearPath(Ray ray, double dist, std::vector<Object>& objects)
+{
+	for (auto& obj : objects)
+	{
+		IntersectData hit = calculateHitSphere(ray, obj);
+		if (hit.hit && ray.orig.dist(hit.pos) < dist) return false;
+	}
+	return true;
+}
+
+Colour raycast(Ray ray, std::vector<Object>& objects, std::vector<Light>& lights, int depth)
+{
+	if (depth == 0) return Colour(0, 0, 0);
+
 	Colour hitColour;
 
-	for (bounces = 0; bounces < MAX_BOUNCES; bounces++)
+	bool isLightSource = false;
+	double intensity = 0;
+	bool hit = false;
+	Coords pos;
+	Vec3 normal;
+	Colour col;
+	std::shared_ptr<Material> mat;
+
+	for (auto& obj : objects)
 	{
-		HitData hit = fireRay(ray, objects);
-		if (hit.hit)
+		IntersectData hitSphere = calculateHitSphere(ray, obj);
+		if (hitSphere.hit)
 		{
-			hitColour = mixColour(hitColour, hit.surfaceCol, multiplier);
-			multiplier *= 0.2;
-			ray.orig = hit.pos;
-			//ray.dir = hit.normal * -2.0 * (ray.dir.dot(hit.normal)) - ray.dir;
-			ray.dir = randInUnitSphere().unit() + hit.normal;
-		}
-		else
-		{
-			hitColour = mixColour(hitColour, Colour(0.6, 0.7, 0.9), multiplier);
-			break;
+			if (!hit || ray.orig.dist(hitSphere.pos) < ray.orig.dist(pos))
+			{
+				hit = true;
+				pos = hitSphere.pos;
+				normal = (hitSphere.pos - obj.pos).unit();
+				col = obj.col;
+				mat = obj.mat;
+			}
 		}
 	}
-	return hitColour;
+	for (auto& light : lights)
+	{
+		IntersectData hitSphere = calculateHitSphere(ray, light.obj);
+		if(hitSphere.hit)
+		{
+			if (!hit || ray.orig.dist(hitSphere.pos) < ray.orig.dist(pos))
+			{
+				hit = true;
+				isLightSource = true;
+				normal = (hitSphere.pos - light.obj.pos).unit();
+				col = light.obj.col;
+				intensity = light.intensity;
+			}
+		}
+	}
+	if (!hit && ray.dir.y < 0)
+	{
+		hit = true;
+		double delta = -ray.orig.y / ray.dir.y;
+		pos = ray.orig + ray.dir * delta;
+		normal = Vec3(0, 1, 0);
+		col = Colour(0.6, 0.6, 0.6);
+		mat = std::make_shared<MatDiffuse>();
+	}
+
+	if (hit)
+	{
+		Colour averaged;
+		if (isLightSource)
+		{
+			// Hacky way to do it but it looks good and I can't find any other way
+			averaged = Colour(1.0, 1.0, 1.0) - col.inverse() / std::sqrt(intensity);
+		}
+		else for (int i = 0; i < RANDOM_BOUNCES; i++)
+		{
+			double attenuation;
+			Ray bounce = mat->bounce(ray, pos, normal, attenuation);
+			Colour calculated = raycast(bounce, objects, lights, depth - 1);
+			// This makes the material attenuate the light ray in a realistic way
+			calculated -= col.inverse() * attenuation;
+			averaged = calculated / RANDOM_BOUNCES;
+		}
+		/*for (auto& light : lights)
+		{
+			IntersectData lightIntersect = calculateHitSphere(Ray(pos, (light.obj.pos - pos).unit()), light.obj);
+			if (clearPath(Ray(pos, (lightIntersect.pos - pos).unit()), pos.dist(lightIntersect.pos), objects))
+			{
+				Vec3 toLight = lightIntersect.pos - pos;
+				double dot = std::max(0.0, normal.dot(toLight.unit()));
+				double contribution = std::min(dot * light.intensity / std::pow(toLight.length(), 2), 1.0);
+				averaged += light.obj.col * contribution;
+			}
+		}*/
+		return averaged;
+	}
+	return Colour(0.6, 0.7, 0.9);
 }
+
+/*
+bool clearPath(Ray ray, std::vector<Object>& objects)
+{
+	for (auto& obj : objects)
+	{
+		if (calculateHitSphere(ray, obj).hit) return false;
+	}
+	return true;
+}*/
 
 //Vec3 light(-10, 40, 50);
 /*

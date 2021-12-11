@@ -6,6 +6,9 @@
 #include "camera.hpp"
 #include "bitmap.hpp"
 #include "raycast.hpp"
+#include "conmanip.h"
+#include "object.hpp"
+#include "materials.hpp"
 
 const int width = 640;
 const int height = 480;
@@ -15,10 +18,14 @@ const int numBlocksX = std::ceil((double)width / BLOCK_SIZE);
 const int numBlocksY = std::ceil((double)height / BLOCK_SIZE);
 const int numBlocks = numBlocksX * numBlocksY;
 
+auto matDiffuse = std::make_shared<MatDiffuse>();
+auto matMetal = std::make_shared<MatMetal>();
+auto matMetalFuzz = std::make_shared<MatMetalFuzz>();
+
 std::mutex blockAssignMutex;
 bool* blocks;
 
-void doPart(Bitmap& image, Camera& camera, std::vector<Object>& objects)
+void doPart(int number, Bitmap& image, Camera& camera, std::vector<Object>& objects, std::vector<Light>& lights)
 {
 	while (true)
 	{
@@ -32,6 +39,7 @@ void doPart(Bitmap& image, Camera& camera, std::vector<Object>& objects)
 				blockX = block % numBlocksX;
 				blockY = block / numBlocksX;
 				blocks[block] = true;
+				std::cout << conmanip::setpos(blockX * 2, blockY) << number;
 				break;
 			}
 		}
@@ -60,14 +68,21 @@ void doPart(Bitmap& image, Camera& camera, std::vector<Object>& objects)
 					{
 						Angle rayDelta = ray.delta(aaDX, aaDY) / 180 * pi;
 						// Get the angle to the top left of the viewplane and add a fraction of the FOV to it
-						Vec3 unit = Vec3(std::sin(rayDelta.pitch) * std::cos(rayDelta.yaw), cos(rayDelta.pitch), sin(rayDelta.pitch) * sin(rayDelta.yaw));
-						calculated += raycast(Ray(camera.pos, unit), objects);
+						Vec3 unit = Vec3(
+							std::sin(rayDelta.pitch) * std::cos(rayDelta.yaw),
+							std::cos(rayDelta.pitch),
+							std::sin(rayDelta.pitch) * std::sin(rayDelta.yaw)
+						);
+						calculated += raycast(Ray(camera.pos, unit), objects, lights, MAX_BOUNCES);
 					}
 				}
-				image.setPixel(x + dX, y + dY, Colour(std::sqrt(calculated.r / 9.0), std::sqrt(calculated.g / 9.0), std::sqrt(calculated.b / 9.0)));
+				calculated /= 9.0; // 9 AA samples needs to be divided to get the average
+				image.setPixel(x + dX, y + dY, calculated.map(std::sqrt)); // We correct the brightness by taking the root
 			}
 		}
-
+		blockAssignMutex.lock();
+		std::cout << conmanip::setpos(blockX * 2, blockY) << "#";
+		blockAssignMutex.unlock();
 	}
 }
 
@@ -80,19 +95,36 @@ int main()
 	blocks = new bool[numBlocks];
 	memset(blocks, 0, numBlocks * sizeof(bool));
 
+	for (int y = 0; y < numBlocksY; y++)
+	{
+		for (int x = 0; x < numBlocksX; x++)
+		{
+			std::cout << "X ";
+		}
+		std::cout << std::endl;
+	}
+	std::cout << "X: Unrendered\n#: Rendered\nNumber: Thread ID rendering" << std::endl;
+
 	std::vector<Object> objects;
-	objects.push_back(Object(Coords(0, 30, 100), 30, Colour(1.0, 0.0, 0.0)));
-	objects.push_back(Object(Coords(30, 30, 50), 20, Colour(0.0, 0.0, 1.0)));
+	objects.push_back(Object(Coords(0, 30, 100), 30, Colour(1.0, 0.0, 0.0), matMetalFuzz));
+	objects.push_back(Object(Coords(30, 30, 50), 20, Colour(0.5, 0.7, 0.3), matDiffuse));
+	objects.push_back(Object(Coords(-60, 10, 175), 10, Colour(0.3, 0.0, 0.3), matMetal));
 
-	std::thread t1(doPart, std::ref(image), std::ref(camera), std::ref(objects));
-	std::thread t2(doPart, std::ref(image), std::ref(camera), std::ref(objects));
-	std::thread t3(doPart, std::ref(image), std::ref(camera), std::ref(objects));
-	std::thread t4(doPart, std::ref(image), std::ref(camera), std::ref(objects));
-	std::thread t5(doPart, std::ref(image), std::ref(camera), std::ref(objects));
-	std::thread t6(doPart, std::ref(image), std::ref(camera), std::ref(objects));
-	std::thread t7(doPart, std::ref(image), std::ref(camera), std::ref(objects));
-	std::thread t8(doPart, std::ref(image), std::ref(camera), std::ref(objects));
+	std::vector<Light> lights;
+	lights.push_back(Light(Coords(-20, 10, 50), 5, Colour(0.996, 0.773, 0.557), 100.0));
 
+	// Arrays? What are those?
+
+	std::thread t0(doPart, 0, std::ref(image), std::ref(camera), std::ref(objects), std::ref(lights));
+	std::thread t1(doPart, 1, std::ref(image), std::ref(camera), std::ref(objects), std::ref(lights));
+	std::thread t2(doPart, 2, std::ref(image), std::ref(camera), std::ref(objects), std::ref(lights));
+	std::thread t3(doPart, 3, std::ref(image), std::ref(camera), std::ref(objects), std::ref(lights));
+	std::thread t4(doPart, 4, std::ref(image), std::ref(camera), std::ref(objects), std::ref(lights));
+	std::thread t5(doPart, 5, std::ref(image), std::ref(camera), std::ref(objects), std::ref(lights));
+	std::thread t6(doPart, 6, std::ref(image), std::ref(camera), std::ref(objects), std::ref(lights));
+	std::thread t7(doPart, 7, std::ref(image), std::ref(camera), std::ref(objects), std::ref(lights));
+
+	t0.join();
 	t1.join();
 	t2.join();
 	t3.join();
@@ -100,7 +132,6 @@ int main()
 	t5.join();
 	t6.join();
 	t7.join();
-	t8.join();
 
 	image.save("out.bmp");
 

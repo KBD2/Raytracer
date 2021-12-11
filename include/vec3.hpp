@@ -28,7 +28,7 @@ public:
 	void operator+=(Vec3 n);
 	double length();
 	Vec3 unit();
-	double distance(Vec3 b);
+	double dist(Vec3 b);
 	double dot(Vec3 b);
 	bool operator==(Vec3 b);
 	bool operator!=(Vec3 b);
