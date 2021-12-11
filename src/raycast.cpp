@@ -158,7 +158,7 @@ Colour raycast(Ray ray, std::vector<Object>& objects, std::vector<Light>& lights
 			calculated -= col.inverse() * attenuation;
 			averaged = calculated / RANDOM_BOUNCES;
 		}
-		/*for (auto& light : lights)
+		for (auto& light : lights)
 		{
 			IntersectData lightIntersect = calculateHitSphere(Ray(pos, (light.obj.pos - pos).unit()), light.obj);
 			if (clearPath(Ray(pos, (lightIntersect.pos - pos).unit()), pos.dist(lightIntersect.pos), objects))
@@ -168,38 +168,8 @@ Colour raycast(Ray ray, std::vector<Object>& objects, std::vector<Light>& lights
 				double contribution = std::min(dot * light.intensity / std::pow(toLight.length(), 2), 1.0);
 				averaged += light.obj.col * contribution;
 			}
-		}*/
+		}
 		return averaged;
 	}
 	return Colour(0.6, 0.7, 0.9);
 }
-
-/*
-bool clearPath(Ray ray, std::vector<Object>& objects)
-{
-	for (auto& obj : objects)
-	{
-		if (calculateHitSphere(ray, obj).hit) return false;
-	}
-	return true;
-}*/
-
-//Vec3 light(-10, 40, 50);
-/*
-double contribution = 0.0;
-for (auto& obj : objects)
-{
-	hit = calculateHitSphere(ray, obj);
-	if (hit.hit)
-	{
-		assert((hit.pos - rayOrig).length() < (obj.pos - ray.orig).length());
-		if (clearPath(Ray(hit.pos, (light - hit.pos).unit()), objects))
-		{
-			Vec3 normal = (hit.pos - obj.pos).unit();
-			Vec3 toLight = light - hit.pos;
-			double dot = std::max(0.0, normal.dot(toLight.unit()));
-			contribution = dot * 100.0 / std::pow(toLight.length() / 2, 2);
-		}
-		return obj.col * contribution;
-	}
-}*/
