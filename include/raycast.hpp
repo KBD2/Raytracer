@@ -6,9 +6,9 @@
 #include "bitmap.hpp"
 #include "object.hpp"
 
-const int MAX_BOUNCES = 5;
+extern int maxBounces;
 const double IMPRECISION_DELTA = 0.001;
-const int RANDOM_BOUNCES = 1;
+extern int randomBounces;
 
 class Ray
 {

@@ -63,16 +63,18 @@ IntersectData calculateHitSphere(Ray ray, Object& obj)
 	double rootFirst = (-b + std::sqrt(discriminant)) / (2.0 * a);
 	double rootSecond = (-b - std::sqrt(discriminant)) / (2.0 * a);
 
+	// Find the closest intercept to the origin in front of the camera
+	if (rootFirst < IMPRECISION_DELTA) rootFirst = 0;
+	if (rootSecond < IMPRECISION_DELTA) rootSecond = 0;
+
 	// If both are below zero the object is behind the ray origin
-	if (rootFirst < 0 && rootSecond < 0) return IntersectData(false, Coords());
+	if (rootFirst <= 0 && rootSecond <= 0) return IntersectData(false, Coords());
 
 	double nearest;
-
-	// Find the closest intercept to the origin in front of the camera
 	if (rootFirst > 0 && rootSecond > 0) nearest = std::min(rootFirst, rootSecond);
 	else nearest = std::max(rootFirst, rootSecond);
 
-	Coords hit = ray.orig + (ray.dir * (nearest - IMPRECISION_DELTA));
+	Coords hit = ray.orig + (ray.dir * nearest);
 	
 	return IntersectData(true, hit);
 }
@@ -96,6 +98,7 @@ Colour raycast(Ray ray, std::vector<Object>& objects, std::vector<Light>& lights
 	bool isLightSource = false;
 	double intensity = 0;
 	bool hit = false;
+	bool inside = false;
 	Coords pos;
 	Vec3 normal;
 	Colour col;
@@ -110,7 +113,12 @@ Colour raycast(Ray ray, std::vector<Object>& objects, std::vector<Light>& lights
 			{
 				hit = true;
 				pos = hitSphere.pos;
-				normal = (hitSphere.pos - obj.pos).unit();
+				if (ray.orig.dist(obj.pos) >= obj.rad) normal = (hitSphere.pos - obj.pos).unit();
+				else
+				{
+					normal = (obj.pos - hitSphere.pos).unit();
+					inside = true;
+				}
 				col = obj.col;
 				mat = obj.mat;
 			}
@@ -149,14 +157,14 @@ Colour raycast(Ray ray, std::vector<Object>& objects, std::vector<Light>& lights
 			// Hacky way to do it but it looks good and I can't find any other way
 			averaged = Colour(1.0, 1.0, 1.0) - col.inverse() / std::sqrt(intensity);
 		}
-		else for (int i = 0; i < RANDOM_BOUNCES; i++)
+		else for (int i = 0; i < randomBounces; i++)
 		{
-			double attenuation;
-			Ray bounce = mat->bounce(ray, pos, normal, attenuation);
+			double attenuation = mat->attenuation();
+			Ray bounce = mat->bounce(ray, pos, normal, inside);
 			Colour calculated = raycast(bounce, objects, lights, depth - 1);
 			// This makes the material attenuate the light ray in a realistic way
 			calculated -= col.inverse() * attenuation;
-			averaged = calculated / RANDOM_BOUNCES;
+			averaged += calculated / randomBounces;
 		}
 		for (auto& light : lights)
 		{

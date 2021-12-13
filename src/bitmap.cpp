@@ -139,5 +139,5 @@ void Colour::operator-=(Colour n)
 
 Colour Colour::inverse()
 {
-	return Colour(1 - r, 1 - g, 1 - b);
+	return Colour(1.0 - r, 1.0 - g, 1.0 - b);
 }

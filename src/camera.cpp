@@ -7,7 +7,7 @@ Angle Angle::fromVec3(Vec3 pos)
 	yaw = std::atan2(pos.z, pos.x) * 180 / pi;
 	double adjacent = std::sqrt(std::pow(pos.x, 2) + std::pow(pos.z, 2));
 	pitch = std::atan2(adjacent, pos.y) * 180 / pi;
-	return Angle(yaw, pitch);
+	return *this;
 }
 
 Angle Angle::delta(double dYaw, double dPitch)
@@ -35,7 +35,19 @@ Angle Angle::operator/(double n)
 	return Angle(yaw / n, pitch / n);
 }
 
+void Angle::operator/=(double divisor)
+{
+	yaw /= divisor;
+	pitch /= divisor;
+}
+
 Angle Angle::operator*(double n)
 {
 	return Angle(yaw * n, pitch * n);
+}
+
+void Angle::operator*=(double n)
+{
+	yaw *= n;
+	pitch *= n;
 }

@@ -13,6 +13,11 @@ inline double toRads(double n)
 	return n / 180 * pi;
 }
 
+inline double toDegs(double n)
+{
+	return n / pi * 180;
+}
+
 class Angle
 {
 public:
@@ -36,7 +41,9 @@ public:
 	Angle operator-(Angle n);
 	void operator+=(Angle n);
 	Angle operator/(double n);
+	void operator/=(double divisor);
 	Angle operator*(double n);
+	void operator*=(double n);
 };
 
 class Camera
