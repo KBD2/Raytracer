@@ -10,13 +10,15 @@
 #include "conmanip.h"
 #include "object.hpp"
 #include "materials.hpp"
+#include "shapes.hpp"
 #include "json.h"
 
-int randomBounces = 1;
-int maxBounces = 5;
+int maxBounces = 25;
 int width = 640;
 int height = 480;
 int blockSize = 50;
+int aaSamples = 50;
+int fov = 90;
 
 int numBlocksX;
 int numBlocksY;
@@ -24,16 +26,29 @@ int numBlocks;
 
 int conOffsetX, conOffsetY;
 
-auto matDiffuse = std::make_shared<MatDiffuse>();
-auto matMetal = std::make_shared<MatMetal>();
-auto matMetalFuzz = std::make_shared<MatMetalFuzz>();
-auto matGlass = std::make_shared<MatGlass>();
-
 std::mutex blockAssignMutex;
 bool* blocks;
 
+template<typename T> bool getConfigVar(nlohmann::json& config, std::string name, T& var)
+{
+	if (config.contains(name))
+	{
+		var = config[name];
+		return true;
+	}
+	else
+	{
+		std::cout << "Could not get config variable '" << name << "', defaulting to " << var << std::endl;
+		return false;
+	}
+}
+
 void doPart(int number, Bitmap& image, Camera& camera, std::vector<Object>& objects, std::vector<Light>& lights)
 {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dis(-1.0, 1.0);
+
 	while (true)
 	{
 		int blockX = -1;
@@ -71,19 +86,13 @@ void doPart(int number, Bitmap& image, Camera& camera, std::vector<Object>& obje
 				double dPhi = camera.fovVert / image.height * ((double)y + dY);
 				Angle ray = Angle().fromVec3(camera.viewplaneTL).delta(dTheta, dPhi);
 
-				double deltaAngleH = camera.fovHoriz / image.width / 2;
-				double deltaAngleV = camera.fovVert / image.width / 2;
-				for (double aaDY = -deltaAngleV; aaDY <= deltaAngleV; aaDY += deltaAngleV)
+				for (int aa = 0; aa < aaSamples; aa++)
 				{
-					for (double aaDX = -deltaAngleH; aaDX <= deltaAngleH; aaDX += deltaAngleH)
-					{
-						Angle rayDelta = ray.delta(aaDX, aaDY) / 180 * pi;
-						// Get the angle to the top left of the viewplane and add a fraction of the FOV to it
-						Vec3 unit = Vec3().fromAngle(rayDelta);
-						calculated += raycast(Ray(camera.pos, unit), objects, lights, maxBounces);
-					}
+					Angle rayDelta = ray.delta(dis(gen) / camera.fovHoriz, dis(gen) / camera.fovVert) / 180 * pi;
+					Vec3 unit = Vec3().fromAngle(rayDelta);
+					calculated += raycast(Ray(camera.pos, unit), objects, lights, maxBounces);
 				}
-				calculated /= 9.0; // 9 AA samples needs to be divided to get the average
+				calculated /= aaSamples;
 				image.setPixel(x + dX, y + dY, calculated.map(std::sqrt)); // We correct the brightness by taking the root
 			}
 		}
@@ -101,6 +110,10 @@ int main()
 	conmanip::console_out_context ctxOut;
 	conmanip::console_out console(ctxOut);
 
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dis(0.0, 1.0);
+
 	int threadNum = 8;
 
 	if (configFile)
@@ -108,18 +121,13 @@ int main()
 		try
 		{
 			configFile >> config;
-			if (config.contains("width")) width = config["width"];
-			else std::cout << "No width specifier, defaulting to " << width << std::endl;
-			if (config.contains("height")) height = config["height"];
-			else std::cout << "No height specifier, defaulting to " << height << std::endl;
-			if (config.contains("random_bounces")) randomBounces = config["random_bounces"];
-			else std::cout << "No random_bounces specifier, defaulting to " << randomBounces << std::endl;
-			if (config.contains("max_bounces")) maxBounces = config["max_bounces"];
-			else std::cout << "No max_bounces specifier, defaulting to " << maxBounces << std::endl;
-			if (config.contains("block_size")) blockSize = config["block_size"];
-			else std::cout << "No block_size specifier, defaulting to " << blockSize << std::endl;
-			if (config.contains("threads")) threadNum = config["threads"];
-			else std::cout << "No threads specifier, defaulting to " << threadNum << std::endl;
+			getConfigVar<int>(config, "width", width);
+			getConfigVar<int>(config, "height", height);
+			getConfigVar<int>(config, "max_bounces", maxBounces);
+			getConfigVar<int>(config, "block_size", blockSize);
+			getConfigVar<int>(config, "threads", threadNum);
+			getConfigVar<int>(config, "anti_aliasing_samples", aaSamples);
+			//getConfigVar<int>(config, "fov", fov);
 		}
 		catch(const std::exception&)
 		{
@@ -150,17 +158,28 @@ int main()
 	}
 	std::cout << "X: Unrendered block\n#: Rendered block\nNumber: Thread ID rendering" << std::endl;
 
+	auto matDiffuse = MatDiffuse();
+	auto matMetal = MatMetal();
+	auto matMetalFuzz = MatMetalFuzz();
+	auto matGlass = MatGlass();
+
+	Sphere sphere1 = Sphere(Coords(0, 30, 100), 30);
+	Sphere sphere2 = Sphere(Coords(30, 30, 50), 20);
+	Sphere sphere3 = Sphere(Coords(-80, 20, 175), 20);
+	Sphere sphere4 = Sphere(Coords(7, 45, 0), 10);
+
 	std::vector<Object> objects;
-	objects.push_back(Object(Coords(0, 30, 100), 30, Colour(1.0, 0.0, 0.0), matMetalFuzz));
-	objects.push_back(Object(Coords(30, 30, 50), 20, Colour(0.5, 0.7, 0.3), matDiffuse));
-	objects.push_back(Object(Coords(-60, 10, 175), 10, Colour(0.3, 0.0, 0.3), matMetal));
-	objects.push_back(Object(Coords(7, 45, 0), 10, Colour(1.0, 1.0, 1.0), matGlass));
+	objects.push_back(Object(&sphere1, Colour(1.0, 1.0, 1.0), &matMetalFuzz));
+	//objects.push_back(Object(&sphere2, Colour(1.0, 0.0, 0.0), &matDiffuse));
+	objects.push_back(Object(&sphere3, Colour(0.7, 0.4, 0.7), &matMetal));
+	objects.push_back(Object(&sphere4, Colour(0.6, 0.6, 1.0), &matGlass));
 
 	std::vector<Light> lights;
-	lights.push_back(Light(Coords(-20, 10, 50), 5, Colour(0.996, 0.773, 0.557), 100.0));
+	//lights.push_back(Light(Coords(-20, 10, 50), 5, Colour(0.996, 0.773, 0.557), 100.0));
 
-	//Camera camera(Coords(0, 45, -50), Coords(0, 30, 100), 90, width, height);
-	Camera camera(Coords(7, 45, -50), Coords(7, 45, 0), 90, width, height);
+	Coords orig(0, 50, -50);
+	Coords dest(0, 30, 100);
+	Camera camera(orig, dest, fov, width, height);
 
 	std::thread* threads = new std::thread[threadNum];
 

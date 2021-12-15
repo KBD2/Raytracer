@@ -5,25 +5,18 @@
 #include "camera.hpp"
 
 class Material;
+class Shape;
 
 class Object
 {
 public:
-	Coords pos;
-	int rad;
+	Shape* shape;
 	Colour col;
-	std::shared_ptr<Material> mat;
+	Material* mat;
 
-	Object()
-	{
-		pos = Coords();
-		rad = 0;
-		col = Colour();
-		mat = NULL;
-	}
 
-	Object(Coords _pos, int _rad, Colour _colour, std::shared_ptr<Material> _mat)
-		: pos(_pos), rad(_rad), col(_colour), mat(_mat) {}
+	Object(Shape* _shape, Colour _colour, Material* _mat)
+		: shape(_shape), col(_colour), mat(_mat) {}
 };
 
 class Light
@@ -31,7 +24,4 @@ class Light
 public:
 	Object obj;
 	double intensity;
-
-	Light(Coords _pos, int _rad, Colour _col, double _intensity)
-		: obj(Object(_pos, _rad, _col, NULL)), intensity(_intensity) {}
 };

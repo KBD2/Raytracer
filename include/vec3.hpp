@@ -36,4 +36,5 @@ public:
 	bool operator!=(Vec3 b);
 	Vec3 operator-();
 	Vec3 fromAngle(Angle angle);
+	Vec3 cross(Vec3 b);
 };

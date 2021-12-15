@@ -2,7 +2,7 @@
     "width": 640,
     "height": 480,
     "max_bounces": 5,
-    "random_bounces": 1,
     "block_size": 50,
-	"threads": 8
+	"threads": 8,
+	"anti_aliasing_samples": 5
 }

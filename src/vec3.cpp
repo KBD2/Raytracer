@@ -84,3 +84,8 @@ Vec3 Vec3::fromAngle(Angle angle)
 
 	return *this;
 }
+
+Vec3 Vec3::cross(Vec3 b)
+{
+	return Vec3(y * b.z - z * b.y, z * b.x - x * b.z, x * b.y - y * b.x);
+}

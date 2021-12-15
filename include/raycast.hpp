@@ -7,8 +7,13 @@
 #include "object.hpp"
 
 extern int maxBounces;
-const double IMPRECISION_DELTA = 0.001;
-extern int randomBounces;
+const double IMPRECISION_DELTA = 0.000001;
+
+typedef struct {
+	Coords pos;
+	Vec3 normal;
+	bool isFront;
+} HitData;
 
 class Ray
 {

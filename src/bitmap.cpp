@@ -95,6 +95,13 @@ void Colour::operator*=(double n)
 	*this = *this * n;
 }
 
+void Colour::operator*=(Colour n)
+{
+	r *= n.r;
+	g *= n.g;
+	b *= n.b;
+}
+
 Colour Colour::operator/(double n)
 {
 	return Colour((double)r / n, (double)g / n, (double)b / n);

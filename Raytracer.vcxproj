@@ -117,7 +117,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <DisableSpecificWarnings>4244;</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4244;26495;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,7 +133,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>include;</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>4244;</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4244;26495;</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -157,6 +157,7 @@
     <ClInclude Include="include\materials.hpp" />
     <ClInclude Include="include\object.hpp" />
     <ClInclude Include="include\raycast.hpp" />
+    <ClInclude Include="include\shapes.hpp" />
     <ClInclude Include="include\vec3.hpp" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

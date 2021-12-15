@@ -24,6 +24,7 @@ public:
 
 	Colour operator*(double n);
 	void operator*=(double n);
+	void operator*=(Colour n);
 	Colour operator/(double n);
 	void operator+=(Colour n);
 	Colour operator+(Colour b);
