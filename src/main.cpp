@@ -18,7 +18,6 @@ int width = 640;
 int height = 480;
 int blockSize = 50;
 int aaSamples = 50;
-int fov = 90;
 
 int numBlocksX;
 int numBlocksY;
@@ -38,7 +37,7 @@ template<typename T> bool getConfigVar(nlohmann::json& config, std::string name,
 	}
 	else
 	{
-		std::cout << "Could not get config variable '" << name << "', defaulting to " << var << std::endl;
+		std::cout << "Could not get config variable '" << name << "', using defaults" << std::endl;
 		return false;
 	}
 }
@@ -106,6 +105,11 @@ int main()
 {
 	std::ifstream configFile("config.json");
 	nlohmann::json config;
+	nlohmann::json cameraConfig = {
+		{"position", {0, 0, 0}},
+		{"look_at", {0, 0, 100}},
+		{"fov", 90}
+	};
 
 	conmanip::console_out_context ctxOut;
 	conmanip::console_out console(ctxOut);
@@ -115,6 +119,10 @@ int main()
 	std::uniform_real_distribution<> dis(0.0, 1.0);
 
 	int threadNum = 8;
+
+	int fov = 90;
+	std::array<double, 3> camPosArr;
+	std::array<double, 3> camDestArr;
 
 	if (configFile)
 	{
@@ -127,7 +135,10 @@ int main()
 			getConfigVar<int>(config, "block_size", blockSize);
 			getConfigVar<int>(config, "threads", threadNum);
 			getConfigVar<int>(config, "anti_aliasing_samples", aaSamples);
-			//getConfigVar<int>(config, "fov", fov);
+			getConfigVar<nlohmann::json>(config, "camera", cameraConfig);
+			getConfigVar<std::array<double, 3>>(cameraConfig, "position", camPosArr);
+			getConfigVar<std::array<double, 3>>(cameraConfig, "look_at", camDestArr);
+			getConfigVar<int>(cameraConfig, "fov", fov);
 		}
 		catch(const std::exception&)
 		{
@@ -135,6 +146,9 @@ int main()
 		}
 	}
 	else std::cout << "No config file found, using defaults" << std::endl;
+
+	Coords orig(camPosArr[0], camPosArr[1], camPosArr[2]);
+	Coords dest(camDestArr[0], camDestArr[1], camDestArr[2]);
 
 	numBlocksX = std::ceil((double)width / blockSize);
 	numBlocksY = std::ceil((double)height / blockSize);
@@ -163,22 +177,22 @@ int main()
 	auto matMetalFuzz = MatMetalFuzz();
 	auto matGlass = MatGlass();
 
+	Plane ground = Plane(Coords(0, 0, 0), Vec3(1, 1, 0));
 	Sphere sphere1 = Sphere(Coords(0, 30, 100), 30);
 	Sphere sphere2 = Sphere(Coords(30, 30, 50), 20);
 	Sphere sphere3 = Sphere(Coords(-80, 20, 175), 20);
 	Sphere sphere4 = Sphere(Coords(7, 45, 0), 10);
 
 	std::vector<Object> objects;
-	objects.push_back(Object(&sphere1, Colour(1.0, 1.0, 1.0), &matMetalFuzz));
-	//objects.push_back(Object(&sphere2, Colour(1.0, 0.0, 0.0), &matDiffuse));
-	objects.push_back(Object(&sphere3, Colour(0.7, 0.4, 0.7), &matMetal));
-	objects.push_back(Object(&sphere4, Colour(0.6, 0.6, 1.0), &matGlass));
+	objects.push_back(Object(&ground, Colour(0.6, 0.6, 0.6), &matDiffuse));
+	//objects.push_back(Object(&sphere1, Colour(1.0, 1.0, 1.0), &matMetalFuzz));
+	//objects.push_back(Object(&sphere2, Colour(1.0, 0.3, 0.3), &matDiffuse));
+	//objects.push_back(Object(&sphere3, Colour(0.7, 0.4, 0.7), &matMetal));
+	//objects.push_back(Object(&sphere4, Colour(0.6, 0.6, 1.0), &matGlass));
 
 	std::vector<Light> lights;
 	//lights.push_back(Light(Coords(-20, 10, 50), 5, Colour(0.996, 0.773, 0.557), 100.0));
 
-	Coords orig(0, 50, -50);
-	Coords dest(0, 30, 100);
 	Camera camera(orig, dest, fov, width, height);
 
 	std::thread* threads = new std::thread[threadNum];

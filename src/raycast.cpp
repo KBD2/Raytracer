@@ -81,13 +81,15 @@ Colour raycast(Ray ray, std::vector<Object>& objects, std::vector<Light>& lights
 
 	for (auto& obj : objects)
 	{
-		bool hitObj = obj.shape->hit(ray, hitData);
+		HitData testHit;
+		bool hitObj = obj.shape->hit(ray, testHit);
 		if (hitObj)
 		{
-			if (!hit || ray.orig.dist(hitData.pos) < nearest)
+			if (!hit || ray.orig.dist(testHit.pos) < nearest)
 			{
 				hit = true;
-				nearest = ray.orig.dist(hitData.pos);
+				hitData = testHit;
+				nearest = ray.orig.dist(testHit.pos);
 				col = obj.col;
 				mat = obj.mat;
 			}
@@ -110,18 +112,6 @@ Colour raycast(Ray ray, std::vector<Object>& objects, std::vector<Light>& lights
 		}
 	}
 
-	if (!hit && ray.dir.y < 0)
-	{
-		hit = true;
-		double delta = -ray.orig.y / ray.dir.y;
-		hitData.pos = ray.orig + ray.dir * delta;
-		hitData.normal = Vec3(0, 1, 0);
-		hitData.isFront = true;
-		col = Colour(0.6, 0.6, 0.6);
-		auto material = MatDiffuse();
-		mat = &material;
-	}
-
 	if (hit)
 	{
 		Colour calculated;
@@ -142,7 +132,8 @@ Colour raycast(Ray ray, std::vector<Object>& objects, std::vector<Light>& lights
 		for (auto& light : lights)
 		{
 			HitData lightHit;
-			bool lightIntersect = light.obj.shape->hit(Ray(hitData.pos, hitData.normal), lightHit);
+			Ray test(hitData.pos, hitData.normal);
+			bool lightIntersect = light.obj.shape->hit(test, lightHit);
 			if (clearPath(Ray(hitData.pos, (lightHit.pos - hitData.pos).unit()), hitData.pos.dist(lightHit.pos), objects))
 			{
 				Vec3 toLight = lightHit.pos - hitData.pos;

@@ -5,7 +5,17 @@
 class Shape
 {
 public:
-	virtual bool hit(Ray ray, HitData& data) = 0;
+	virtual bool hit(Ray& ray, HitData& data) = 0;
+
+	void handleFace(Ray& ray, HitData& data)
+	{
+		if (ray.dir.dot(data.normal) <= 0.0) data.isFront = true;
+		else
+		{
+			data.isFront = false;
+			data.normal = -data.normal;
+		}
+	}
 };
 
 class Sphere : public Shape
@@ -16,7 +26,7 @@ public:
 
 	Sphere(Coords _pos, double _rad) : pos(_pos), rad(_rad) {}
 
-	bool hit(Ray ray, HitData& data) override
+	bool hit(Ray& ray, HitData& data) override
 	{
 		Vec3 toCentre = ray.orig - pos;
 		double a = std::pow(ray.dir.length(), 2);
@@ -36,12 +46,27 @@ public:
 
 		data.pos = ray.orig + ray.dir * root;
 		data.normal = (data.pos - pos).unit();
-		if (ray.dir.dot(data.normal) <= 0.0) data.isFront = true;
-		else
-		{
-			data.isFront = false;
-			data.normal = -data.normal;
-		}
+		handleFace(ray, data);
+		return true;
+	}
+};
+
+class Plane : public Shape
+{
+public:
+	Coords point;
+	Vec3 normal;
+
+	Plane(Coords _point, Vec3 _normal) : point(_point), normal(_normal) {}
+
+	bool hit(Ray& ray, HitData& data) override
+	{
+		double root = (point - ray.orig).dot(normal) / ray.dir.dot(normal);
+		if (root < IMPRECISION_DELTA) return false;
+
+		data.pos = ray.orig + ray.dir * root;
+		data.normal = normal;
+		handleFace(ray, data);
 		return true;
 	}
 };

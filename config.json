@@ -4,5 +4,10 @@
     "max_bounces": 5,
     "block_size": 50,
 	"threads": 8,
-	"anti_aliasing_samples": 5
+	"anti_aliasing_samples": 5,
+	"camera": {
+		"fov": 90,
+		"position": [0, 50, -50],
+		"look_at": [0, 30, 100]
+	}
 }
